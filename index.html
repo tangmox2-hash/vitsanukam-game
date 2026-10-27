@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>วิษณุกรรมประสิทธิ์ (The Master Luthier v.002.1)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Charmonman:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f0d0a;
+      --card-bg: #1c1813;
+      --gold-primary: #d4af37;
+      --gold-light: #f3e5ab;
+      --border-animal: #FFD700;
+      --border-wood: #2E7D32;
+      --border-metal: #8E24AA;
+      --border-tool: #1E88E5;
+      --border-deva: #1E88E5;
+      --border-inst: #E53935;
+      --text-light: #f5f0eb;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background-image: url('images/board_bg.jpg'), radial-gradient(circle at center, #2c1f14 0%, #0f0d0a 100%);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+    }
+
+    #sound-control-btn {
+      position: absolute;
+      top: 10px; right: 15px;
+      background: rgba(28, 24, 19, 0.75);
+      border: 1px solid var(--gold-primary);
+      color: var(--gold-light);
+      padding: 6px 12px; border-radius: 8px;
+      cursor: pointer; font-size: 0.85rem; z-index: 100;
+      backdrop-filter: blur(5px); transition: 0.2s;
+    }
+    #sound-control-btn:hover { background: var(--gold-primary); color: #000; }
+
+    /* หน้าจอเริ่มต้น: ขยับกล่องเมนูมาทางซ้ายและลงล่างตามที่ต้องการ */
+    #start-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background-image: url('images/start_bg.jpg');[cite: 1]
+      background-size: auto 85vh;
+      background-position: 3% center;
+      background-repeat: no-repeat;
+      background-color: #0f0d0a;
+      z-index: 2000;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding-right: 22%; /* ขยับกล่องเมนูมาทางซ้ายเพิ่มขึ้น */
+      padding-top: 8%;  /* ขยับกล่องเมนูลงล่าง */
+      overflow-y: auto;
+    }
+    .start-card-box {
+      background: rgba(15, 13, 10, 0.7);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      width: 410px;
+      max-width: 95vw;
+      padding: 14px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      backdrop-filter: blur(4px);
+    }
+    .start-btn {
+      font-family: 'Charmonman', cursive;
+      font-size: 1.5rem;
+      padding: 4px 22px;
+      background: linear-gradient(135deg, #d4af37, #aa7c11);
+      color: #0f0d0a; border: 2px solid #fff;
+      border-radius: 50px; cursor: pointer;
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.8);
+      transition: all 0.3s ease;
+      margin-top: 3px;
+    }
+    .start-btn:hover { transform: scale(1.05); background: #f3e5ab; }
+
+    .avatar-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 5px; width: 100%; margin-top: 2px;
+    }
+    .avatar-option {
+      background: #0f0d0a; border: 2px solid rgba(212, 175, 55, 0.4);
+      border-radius: 8px; padding: 3px; display: flex; flex-direction: column;
+      align-items: center; cursor: pointer; transition: 0.2s;
+    }
+    .avatar-option:hover { border-color: var(--gold-primary); transform: translateY(-2px); }
+    .avatar-option.selected {
+      border-color: #00ffcc; box-shadow: 0 0 10px #00ffcc; background: rgba(0, 255, 204, 0.1);
+    }
+    .avatar-img {
+      width: 34px; height: 34px; border-radius: 50%;
+      background-size: cover; background-position: center; background-color: #2a221b;
+      margin-bottom: 2px; border: 1px solid var(--gold-primary);
+    }
+    .avatar-name { font-size: 0.6rem; color: var(--gold-light); text-align: center; font-weight: bold; }
+
+    .input-group { width: 100%; display: flex; flex-direction: column; gap: 2px; }
+    .input-group label { color: var(--gold-light); font-size: 0.75rem; font-weight: bold; }
+    .input-group input, .input-group select {
+      background: rgba(15, 13, 10, 0.9); color: var(--gold-primary);
+      border: 1.5px solid var(--gold-primary); padding: 3px 7px;
+      font-size: 0.78rem; border-radius: 5px; font-weight: bold; width: 100%; outline: none;
+    }
+
+    .rules-toggle-btn {
+      background: transparent; color: var(--gold-light);
+      border: 1px dashed var(--gold-primary); padding: 3px 7px;
+      border-radius: 4px; cursor: pointer; font-size: 0.68rem; transition: 0.2s;
+    }
+    .rules-toggle-btn:hover { background: rgba(212,175,55,0.1); }
+    
+    #rules-panel {
+      display: none; background: rgba(0,0,0,0.85); padding: 4px 7px;
+      border-radius: 6px; font-size: 0.65rem; color: #ddd; max-height: 70px;
+      overflow-y: auto; width: 100%; line-height: 1.25; border: 1px solid rgba(212,175,55,0.3);
+    }
+
+    .credit-footer {
+      position: absolute; bottom: 6px; right: 12px; font-size: 0.7rem;
+      color: rgba(243, 229, 171, 0.7); font-style: italic; z-index: 10; pointer-events: none;
+    }
+
+    /* ฉากจบเกม */
+    #victory-modal {
+      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background-image: url('images/victory_bg.jpg');[cite: 2]
+      background-size: auto 85vh;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: #0f0d0a;
+      z-index: 3000;
+      flex-direction: column; justify-content: center; align-items: center; padding: 20px;
+    }
+    .victory-content {
+      background: rgba(255, 253, 245, 0.92);
+      border: 3px solid var(--gold-primary);
+      width: 680px; max-width: 90vw; padding: 22px;
+      border-radius: 12px; display: flex; flex-direction: column; align-items: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+      z-index: 3002;
+    }
+    .score-table {
+      width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 12px;
+      background: rgba(255, 255, 255, 0.95); border-radius: 6px; overflow: hidden; color: #2c1f14;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+    .score-table th, .score-table td {
+      border: 1px solid rgba(170, 124, 17, 0.35); padding: 7px; text-align: center; font-size: 0.85rem;
+    }
+    .score-table th { background: rgba(170, 124, 17, 0.22); color: #5c3a0b; font-weight: bold; }
+    .score-table tr:nth-child(even) { background: rgba(212, 175, 55, 0.08); }
+
+    .flying-card {
+      position: fixed; width: 60px; height: 90px;
+      background: #d4af37; border: 2px solid #fff; border-radius: 6px;
+      z-index: 1500; transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.8); pointer-events: none;
+    }
+
+    header {
+      position: absolute; top: 10px; left: 15px;
+      display: flex; flex-direction: column; align-items: flex-start;
+      background: rgba(15, 13, 10, 0.65); border: 1px solid var(--gold-primary);
+      padding: 6px 12px; border-radius: 8px; z-index: 10; backdrop-filter: blur(4px); gap: 2px;
+    }
+    .game-title { font-family: 'Charmonman', cursive; color: var(--gold-primary); font-size: 1.25rem; }
+    .turn-indicator { font-weight: bold; color: var(--gold-light); font-size: 0.9rem; }
+
+    .p-zone {
+      position: absolute; padding: 6px 10px; border-radius: 8px;
+      background: rgba(28, 24, 19, 0.60);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      display: flex; flex-direction: column; align-items: center;
+      transition: all 0.3s ease; z-index: 5; backdrop-filter: blur(4px);
+    }
+    .p-zone.active-turn {
+      border-color: var(--gold-primary); box-shadow: 0 0 15px rgba(212, 175, 55, 0.7);
+    }
+    
+    #p-top { top: 5px; left: 50%; transform: translateX(-50%); width: 420px; }
+    #p-left { top: 40%; left: 10px; transform: translateY(-50%); width: 250px; }
+    #p-right { top: 40%; right: 10px; transform: translateY(-50%); width: 250px; }
+    #p-bottom { bottom: 10px; left: 50%; transform: translateX(-50%); width: 920px; background: rgba(28, 24, 19, 0.70); }
+
+    #board-center {
+      position: absolute; top: 47%; left: 50%;
+      transform: translate(-50%, -50%); width: 720px; height: 375px;
+      background: rgba(15, 13, 10, 0.65);
+      border: 2px solid var(--gold-primary); border-radius: 15px;
+      display: flex; flex-direction: column; padding: 10px; gap: 6px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+    }
+
+    .board-middle-section {
+      display: flex; justify-content: space-between; align-items: center; flex: 1; padding: 0 10px;
+    }
+
+    .deck-pile-box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .deck-card-back {
+      width: 62px; height: 90px; border-radius: 6px; background-size: cover; background-position: center;
+      border: 2px solid var(--gold-primary); cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.6); transition: transform 0.2s;
+    }
+    .deck-card-back:hover { transform: scale(1.06); }
+    .deck-label { font-size: 0.68rem; color: var(--gold-light); font-weight: bold; text-align: center; }
+
+    .market-row { display: flex; justify-content: center; gap: 10px; align-items: center; flex: 1; }
+
+    .card {
+      width: 76px; height: 110px; border-radius: 6px;
+      background-size: cover; background-position: center; background-color: #2a221b;
+      position: relative; cursor: pointer;
+      transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.25s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+      display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-end;
+      padding: 3px; flex-shrink: 0; overflow: hidden;
+    }
+    .card:hover { transform: translateY(-8px) scale(1.1) rotateX(3deg); z-index: 500; box-shadow: 0 8px 18px rgba(0,0,0,0.7); }
+
+    #board-center .card:hover {
+      transform: translateY(-12px) scale(1.3) rotateX(4deg);
+      z-index: 1000;
+      box-shadow: 0 12px 25px rgba(0,0,0,0.8);
+    }
+    
+    .card.holographic::after {
+      content: ''; position: absolute; top: 0; left: 0; width: 200%; height: 100%;
+      background: linear-gradient(115deg, transparent 30%, rgba(255,215,0,0.3) 45%, rgba(0,255,204,0.3) 55%, transparent 70%);
+      transform: translateX(-100%); animation: holo-shine 3s infinite linear; pointer-events: none;
+    }
+    @keyframes holo-shine {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(50%); }
+    }
+
+    .card.selected-for-craft {
+      border: 3.5px solid #00ffcc !important; box-shadow: 0 0 15px #00ffcc; transform: translateY(-10px) scale(1.2); z-index: 1000;
+    }
+    
+    .card.animal { border: 3px solid var(--border-animal); }
+    .card.wood { border: 3px solid var(--border-wood); }
+    .card.metal { border: 3px solid var(--border-metal); }
+    .card.tool { border: 3px solid var(--border-tool); }
+    .card.deva { border: 3px solid var(--border-deva); box-shadow: 0 0 10px rgba(255, 215, 0, 0.8); }
+    .card.instrument { border: 3px solid var(--border-inst); width: 90px; height: 128px; }
+
+    .card-title-text {
+      background: rgba(0,0,0,0.85); font-size: 0.56rem; text-align: right; color: #fff;
+      padding: 2px 4px; border-radius: 3px; font-weight: bold; max-width: 90%;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2;
+    }
+
+    .card-sub-info {
+      font-size: 0.52rem; color: var(--gold-light); text-align: right;
+      background: rgba(0,0,0,0.75); padding: 1px 4px; border-radius: 3px; margin-top: 1px; z-index: 2;
+    }
+
+    .hand-container {
+      display: flex; justify-content: center; gap: 8px; padding: 4px 0;
+      max-width: 100%; overflow-x: auto; min-height: 120px; align-items: center;
+    }
+
+    .crafted-shelf {
+      display: flex; gap: 5px; overflow-x: auto; max-width: 100%; min-height: 44px;
+      padding: 3px; background: rgba(0,0,0,0.3); border-radius: 6px;
+      border: 1px dashed rgba(212, 175, 55, 0.4); margin-top: 2px;
+    }
+    .crafted-mini-card {
+      width: 28px; height: 40px; border-radius: 4px; border: 1.5px solid var(--border-inst);
+      background-size: cover; background-position: center; position: relative; flex-shrink: 0;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #d4af37, #aa7c11); color: #000; border: none;
+      padding: 6px 13px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 0.82rem; transition: 0.2s;
+    }
+    .btn:hover { background: #f3e5ab; transform: scale(1.05); }
+
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center;
+    }
+    .modal-content {
+      background: #1c1813; border: 2px solid var(--gold-primary); width: 680px; padding: 20px;
+      border-radius: 10px; display: flex; flex-direction: column; gap: 12px;
+    }
+
+    #log-box {
+      font-size: 0.73rem; color: var(--gold-light); background: rgba(0,0,0,0.5);
+      padding: 2px 8px; border-radius: 4px; max-width: 340px; text-align: left;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .selectable-mat-box {
+      display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; padding: 12px;
+      background: rgba(0,0,0,0.5); border-radius: 8px; max-height: 240px; overflow-y: auto;
+    }
+
+    .avatar-large {
+      width: 44px; height: 44px; border-radius: 50%; background-size: cover; background-position: center;
+      border: 2px solid var(--gold-primary); flex-shrink: 0;
+    }
+
+    #craft-cutscene {
+      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.85); z-index: 2500; justify-content: center; align-items: center;
+      flex-direction: column; gap: 20px; backdrop-filter: blur(5px);
+    }
+    .hammer-animation { font-size: 4rem; animation: hammer-hit 0.4s infinite alternate; }
+    @keyframes hammer-hit {
+      0% { transform: rotate(-20deg) scale(1); }
+      100% { transform: rotate(20deg) scale(1.2); }
+    }
+
+    #epic-reveal-box {
+      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.88); z-index: 2800; justify-content: center; align-items: center;
+      flex-direction: column; gap: 15px; backdrop-filter: blur(6px);
+    }
+    .epic-card-display {
+      width: 180px; height: 260px; border-radius: 10px; background-size: cover; background-position: center;
+      border: 4px solid var(--gold-primary); box-shadow: 0 0 40px rgba(212,175,55,0.8);
+      animation: card-wobble 0.6s infinite ease-in-out alternate; position: relative;
+    }
+    @keyframes card-wobble {
+      0% { transform: scale(1.3) rotate(-3deg); }
+      100% { transform: scale(1.35) rotate(3deg); }
+    }
+  </style>
+</head>
+<body>
+
+<audio id="bg-music" loop><source src="audio/bgm.mp3" type="audio/mp3"></audio>
+<button id="sound-control-btn" onclick="toggleSound()">🔊 เสียง: เปิด</button>
+
+<div id="craft-cutscene">
+  <div class="hammer-animation">🔨</div>
+  <h2 style="font-family:'Charmonman', cursive; color:var(--gold-primary); font-size:2.3rem;" id="cutscene-text">กำลังประณีตบรรจงสร้างสรรค์ชิ้นงาน...</h2>
+</div>
+
+<div id="epic-reveal-box">
+  <div class="epic-card-display" id="epic-card-img"></div>
+  <div id="epic-sparkle-text" style="font-family:'Charmonman', cursive; font-size:2rem; color:var(--gold-light); text-shadow:0 0 15px rgba(212,175,55,0.8);">สร้างเครื่องดนตรีสำเร็จ!</div>
+</div>
+
+<!-- หน้าจอเริ่มต้น -->
+<div id="start-overlay">
+  <div class="start-card-box">
+    <div class="input-group">
+      <label>ชื่อตัวละครของคุณ:</label>
+      <input type="text" id="player-name-input" value="ทิดมาก" maxlength="15">
+    </div>
+
+    <div class="input-group">
+      <label>เลือกรูปตัวละคร:</label>
+      <div class="avatar-grid" id="avatar-selection-grid"></div>
+    </div>
+
+    <div style="display:flex; gap:10px; width:100%;">
+      <div class="input-group" style="flex:1;">
+        <label for="win-target-select">เป้าหมายจบเกม:</label>
+        <select id="win-target-select">
+          <option value="3">3 เครื่อง</option>
+          <option value="5" selected>5 เครื่อง</option>
+          <option value="7">7 เครื่อง</option>
+          <option value="10">10 เครื่อง</option>
+        </select>
+      </div>
+      <div class="input-group" style="flex:1;">
+        <label for="ai-difficulty-select">ระดับความยาก AI:</label>
+        <select id="ai-difficulty-select">
+          <option value="easy">ง่าย (ลูกมือ)</option>
+          <option value="normal" selected>ปานกลาง (ช่างฝีมือ)</option>
+          <option value="hard">ยาก (ครูช่างเอก)</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="rules-toggle-btn" onclick="toggleRulesPanel()">กติกาและวิธีการเล่น</button>
+    <div id="rules-panel">
+      <b>เป้าหมาย:</b> สะสมรัตนะและสร้างเครื่องดนตรีตามเป้าหมาย<br>
+      <b>แอคชัน:</b> จั่วการ์ด, ซื้อวัตถุดิบจากตลาด, หรือสร้างเครื่องดนตรี<br>
+      <b>คะแนน:</b> ดาวคูณ 2 รายได้ | ผู้ชนะคนแรกรับโบนัส (เป้าหมาย × 2.5 รัตนะ)
+    </div>
+
+    <button class="start-btn" onclick="startGameWithSettings()">เริ่มประลองฝีมือ</button>
+  </div>
+  <div class="credit-footer">รังสรรค์ โดย ครูแตงโม v.002.1</div>
+</div>
+
+<!-- ฉากจบเกม -->
+<div id="victory-modal">
+  <div class="victory-content">
+    <h2 style="font-family:'Charmonman', cursive; color:#5c3a0b; font-size:2.2rem; margin-bottom:5px; text-shadow:0 1px 2px rgba(255,255,255,0.8);">ประกาศผลการประลองฝีมือช่างหลวง</h2>
+    <p style="color:#7a5214; font-size:0.88rem; margin-bottom:10px; font-weight:bold;">บันทึกเกียรติยศแห่งสำนักช่างเครื่องดนตรีไทย</p>
+    <table class="score-table" id="score-table-elem">
+      <thead>
+        <tr>
+          <th>อันดับ</th>
+          <th>ชื่อช่าง</th>
+          <th>ผลงาน</th>
+          <th>ดาวผลงาน</th>
+          <th>ดาววัตถุดิบ</th>
+          <th>รัตนะ</th>
+          <th>คะแนนรวม</th>
+        </tr>
+      </thead>
+      <tbody id="score-tbody"></tbody>
+    </table>
+    <button class="start-btn" style="font-size:1.2rem; padding:6px 22px;" onclick="location.reload()">เริ่มประลองใหม่</button>
+  </div>
+</div>
+
+<div id="game-container">
+  <header>
+    <div class="game-title">วิษณุกรรมประสิทธิ์</div>
+    <div class="turn-indicator" id="turn-text">รอบที่: 1 | ตาของคุณ</div>
+    <div id="log-box">ยินดีต้อนรับสู่วงการช่างเครื่องดนตรีไทย</div>
+  </header>
+
+  <!-- Bot 2 (Top) -->
+  <div class="p-zone" id="p-top">
+    <div style="display:flex; align-items:center; gap:8px; width:100%;">
+      <div class="avatar-large" id="bot2-avatar"></div>
+      <div style="flex:1;">
+        <div id="bot2-title" style="font-weight:bold; font-size:0.9rem;">บอท 2</div>
+        <div style="font-size:0.72rem; color:#ccc;">รัตนะ: <span id="ratana-top">5</span> | การ์ด: <span id="cards-top">0</span> ใบ</div>
+      </div>
+    </div>
+    <div style="font-size:0.68rem; color:var(--gold-light); margin-top:2px; width:100%;">ผลงานที่สร้างสำเร็จ:</div>
+    <div class="crafted-shelf" id="shelf-top" style="width:100%;"></div>
+  </div>
+
+  <!-- Bot 1 (Left) -->
+  <div class="p-zone" id="p-left">
+    <div style="display:flex; align-items:center; gap:8px; width:100%;">
+      <div class="avatar-large" id="bot1-avatar"></div>
+      <div style="flex:1;">
+        <div id="bot1-title" style="font-weight:bold; font-size:0.9rem;">บอท 1</div>
+        <div style="font-size:0.72rem; color:#ccc;">รัตนะ: <span id="ratana-left">5</span> | การ์ด: <span id="cards-left">0</span> ใบ</div>
+      </div>
+    </div>
+    <div style="font-size:0.68rem; color:var(--gold-light); margin-top:2px; width:100%;">ผลงานที่สร้างสำเร็จ:</div>
+    <div class="crafted-shelf" id="shelf-left" style="width:100%;"></div>
+  </div>
+
+  <!-- กระดานกลาง (กองการ์ดคว่ำทั้ง 3 และตลาด) -->
+  <div id="board-center">
+    <div class="board-middle-section">
+      <div class="deck-pile-box">
+        <div class="deck-card-back" id="deck-inst" style="background-image:url('images/back/inst_back.jpg')" onclick="drawInstFromDeckManual()" title="คลิกจั่วการ์ดเครื่องดนตรี"></div>
+        <div class="deck-label">กองเครื่องดนตรี</div>
+      </div>
+      <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
+        <div style="text-align:center; color: var(--gold-light); font-size:0.78rem; font-weight:bold;">ตลาดเครื่องดนตรี (คลิกเพื่อสร้าง)</div>
+        <div class="market-row" id="inst-market"></div>
+      </div>
+      <div class="deck-pile-box">
+        <div class="deck-card-back" id="deck-mat" style="background-image:url('images/back/mat_back.jpg')" onclick="drawMaterialAction()" title="คลิกจั่วกองวัตถุดิบ"></div>
+        <div class="deck-label">กองวัตถุดิบ</div>
+      </div>
+    </div>
+
+    <div class="board-middle-section" style="border-top:1px dashed rgba(212,175,55,0.3); padding-top:4px;">
+      <div class="deck-pile-box">
+        <div class="deck-card-back" id="deck-tool" style="background-image:url('images/back/tool_back.jpg')" onclick="drawToolAction()" title="คลิกจั่วการ์ดช่าง/เทพ"></div>
+        <div class="deck-label">กองช่าง/เทพ</div>
+      </div>
+      <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
+        <div style="text-align:center; color: var(--gold-light); font-size:0.78rem; font-weight:bold;">ตลาดวัตถุดิบ (คลิกซื้อ: หักรัตนะตามดาว)</div>
+        <div class="market-row" id="mat-market"></div>
+      </div>
+      <div style="width:62px;"></div>
+    </div>
+  </div>
+
+  <!-- Bot 3 (Right) -->
+  <div class="p-zone" id="p-right">
+    <div style="display:flex; align-items:center; gap:8px; width:100%;">
+      <div class="avatar-large" id="bot3-avatar"></div>
+      <div style="flex:1;">
+        <div id="bot3-title" style="font-weight:bold; font-size:0.9rem;">บอท 3</div>
+        <div style="font-size:0.72rem; color:#ccc;">รัตนะ: <span id="ratana-right">5</span> | การ์ด: <span id="cards-right">0</span> ใบ</div>
+      </div>
+    </div>
+    <div style="font-size:0.68rem; color:var(--gold-light); margin-top:2px; width:100%;">ผลงานที่สร้างสำเร็จ:</div>
+    <div class="crafted-shelf" id="shelf-right" style="width:100%;"></div>
+  </div>
+
+  <!-- Player HUD -->
+  <div class="p-zone active-turn" id="p-bottom">
+    <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="avatar-large" id="player-hud-avatar"></div>
+        <div>
+          <span id="player-hud-name" style="font-weight:bold; font-size:1.02rem; color:var(--gold-light);">คุณ</span> 
+          | รัตนะ: <span id="ratana-p1" style="color:var(--gold-primary); font-weight:bold; font-size:1.15rem;">5</span> 
+          | แอคชัน: <span id="actions-p1" style="color:#00ffcc; font-weight:bold;">2</span>/<span id="max-actions-p1">2</span>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" onclick="drawMaterialAction()">จั่ววัตถุดิบ</button>
+        <button class="btn" onclick="drawToolAction()">จั่วช่าง/เทพ</button>
+        <button class="btn" style="background: linear-gradient(135deg, #e53935, #c62828); color:#fff;" onclick="endTurn()">จบเทิร์น ➔</button>
+      </div>
+    </div>
+    
+    <div style="display:flex; width:100%; gap:10px; margin-top:4px; align-items:center;">
+      <div style="flex:1;">
+        <div class="hand-container" id="p1-hand"></div>
+      </div>
+      <div style="width:210px; border-left:1px solid rgba(212,175,55,0.3); padding-left:10px;">
+        <div style="font-size:0.68rem; color:var(--gold-light); text-align:center;">ผลงานที่สร้างสำเร็จ:</div>
+        <div class="crafted-shelf" id="shelf-p1" style="justify-content:center;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="credit-footer">รังสรรค์ โดย ครูแตงโม v.002.1</div>
+</div>
+
+<!-- Modal เลือกวัตถุดิบ -->
+<div class="modal" id="craft-modal">
+  <div class="modal-content">
+    <h3 style="color:var(--gold-primary); text-align:center;" id="modal-title">สร้างเครื่องดนตรี</h3>
+    <div id="modal-req-text" style="font-size:0.9rem; color:var(--gold-light); text-align:center; font-weight:bold;"></div>
+    <div style="font-size:0.78rem; color:#ccc; text-align:center;" id="modal-instruction">เลือกวัตถุดิบให้ตรงตามสูตร (เลือกเครื่องมือช่วยได้ 1 ใบ และการ์ดพระลักษมีเสริมพลังได้):</div>
+    <div class="selectable-mat-box" id="modal-mat-selection"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+      <div id="modal-selected-count" style="font-size:0.82rem; color:#00ffcc; font-weight:bold;"></div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" style="background:#666; color:#fff;" onclick="closeModal()">ยกเลิก</button>
+        <button class="btn" id="confirm-craft-btn">ยืนยันการสร้าง</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let soundEnabled = true;
+  let audioCtx = null;
+
+  function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  function toggleSound() {
+    initAudio();
+    soundEnabled = !soundEnabled;
+    document.getElementById('sound-control-btn').innerText = soundEnabled ? "🔊 เสียง: เปิด" : "🔇 เสียง: ปิด";
+  }
+
+  function playSound(type) {
+    if (!soundEnabled) return;
+    initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    let now = audioCtx.currentTime;
+
+    if (type === 'card') {
+      osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+      gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      osc.start(now); osc.stop(now + 0.1);
+    } else if (type === 'coin') {
+      osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.setValueAtTime(1200, now + 0.08);
+      gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      osc.start(now); osc.stop(now + 0.25);
+    } else if (type === 'hammer') {
+      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(60, now + 0.15);
+      gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.start(now); osc.stop(now + 0.15);
+    } else if (type === 'magic') {
+      osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(1000, now + 0.4);
+      gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      osc.start(now); osc.stop(now + 0.4);
+    }
+  }
+
+  const characterAvatars = [
+    { id: 'character_1', name: 'ทิดมาก', img: 'images/character/character_1.jpg', ageGroup: 'young' },
+    { id: 'character_2', name: 'ตาทุย', img: 'images/character/character_2.jpg', ageGroup: 'old' },
+    { id: 'character_3', name: 'ไอ้เหมือน', img: 'images/character/character_3.jpg', ageGroup: 'young' },
+    { id: 'character_4', name: 'ตาเทียน', img: 'images/character/character_4.jpg', ageGroup: 'old' },
+    { id: 'character_5', name: 'นายทอง', img: 'images/character/character_5.jpg', ageGroup: 'young' },
+    { id: 'character_6', name: 'เจ๊กฮง', img: 'images/character/character_6.jpg', ageGroup: 'old' },
+    { id: 'character_7', name: 'ไอ้เสม', img: 'images/character/character_7.jpg', ageGroup: 'young' },
+    { id: 'character_8', name: 'ปู่แก้ว', img: 'images/character/character_8.jpg', ageGroup: 'old' }
+  ];
+
+  let selectedAvatarIndex = 0;
+  let aiDifficulty = 'normal';
+
+  function initAvatarSelection() {
+    const grid = document.getElementById('avatar-selection-grid');
+    grid.innerHTML = '';
+    characterAvatars.forEach((char, idx) => {
+      const item = document.createElement('div');
+      item.className = `avatar-option ${idx === selectedAvatarIndex ? 'selected' : ''}`;
+      item.onclick = () => {
+        selectedAvatarIndex = idx;
+        document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+        item.classList.add('selected');
+        document.getElementById('player-name-input').value = char.name;
+      };
+
+      const imgDiv = document.createElement('div');
+      imgDiv.className = 'avatar-img';
+      imgDiv.style.backgroundImage = `url('${char.img}')`;
+
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'avatar-name';
+      nameDiv.innerText = char.name;
+
+      item.appendChild(imgDiv); item.appendChild(nameDiv);
+      grid.appendChild(item);
+    });
+  }
+
+  function toggleRulesPanel() {
+    const panel = document.getElementById('rules-panel');
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+  }
+
+  const allInstDB = [
+    { id:'chab_lek_1', name: 'ฉาบเล็ก', level: 1, group: 'metal_inst', req: { animal: 0, metal: 1, wood: 0 }, img: 'images/instruments/chab_lek_1.jpg' },
+    { id:'chab_yai_1', name: 'ฉาบใหญ่', level: 1, group: 'metal_inst', req: { animal: 0, metal: 2, wood: 0 }, img: 'images/instruments/chab_yai_1.jpg' },
+    { id:'ching_1', name: 'ฉิ่ง', level: 1, group: 'metal_inst', req: { animal: 0, metal: 2, wood: 0 }, img: 'images/instruments/ching_1.jpg' },
+    { id:'hmong_2', name: 'โหม่ง', level: 2, group: 'metal_inst', req: { animal: 0, metal: 1, wood: 2 }, img: 'images/instruments/hmong_2.jpg' },
+    { id:'hmong_3', name: 'ฆ้องชัย', level: 3, group: 'metal_inst', req: { animal: 2, metal: 3, wood: 1 }, img: 'images/instruments/hmong_3.jpg' },
+    { id:'jakhe_1', name: 'จะเข้', level: 1, group: 'string', req: { animal: 0, metal: 1, wood: 2 }, img: 'images/instruments/jakhe_1.jpg' },
+    { id:'jakhe_2', name: 'จะเข้', level: 2, group: 'string', req: { animal: 1, metal: 1, wood: 2 }, img: 'images/instruments/jakhe_2.jpg' },
+    { id:'jakhe_3', name: 'จะเข้', level: 3, group: 'string', req: { animal: 1, metal: 1, wood: 4 }, img: 'images/instruments/jakhe_3.jpg' },
+    { id:'khawng_wong_lek_2', name: 'ฆ้องวงเล็ก', level: 2, group: 'khawng_wong', req: { animal: 1, metal: 3, wood: 1 }, img: 'images/instruments/khawng_wong_lek_2.jpg' },
+    { id:'khawng_wong_lek_3', name: 'ฆ้องวงเล็ก', level: 3, group: 'khawng_wong', req: { animal: 2, metal: 3, wood: 1 }, img: 'images/instruments/khawng_wong_lek_3.jpg' },
+    { id:'khawng_wong_yai_2', name: 'ฆ้องวงใหญ่', level: 2, group: 'khawng_wong', req: { animal: 1, metal: 2, wood: 1 }, img: 'images/instruments/khawng_wong_yai_2.jpg' },
+    { id:'khawng_wong_yai_3', name: 'ฆ้องวงใหญ่', level: 3, group: 'khawng_wong', req: { animal: 1, metal: 3, wood: 2 }, img: 'images/instruments/khawng_wong_yai_3.jpg' },
+    { id:'khlui_phiang_aw_1', name: 'ขลุ่ยเพียงออ', level: 1, group: 'wind', req: { animal: 0, metal: 0, wood: 2 }, img: 'images/instruments/khlui_phiang_aw_1.jpg' },
+    { id:'khlui_phiang_aw_2', name: 'ขลุ่ยเพียงออ', level: 2, group: 'wind', req: { animal: 2, metal: 1, wood: 1 }, img: 'images/instruments/khlui_phiang_aw_2.jpg' },
+    { id:'kim1_2', name: 'ขิม', level: 2, group: 'string', req: { animal: 1, metal: 1, wood: 2 }, img: 'images/instruments/kim1_2.jpg' },
+    { id:'kim2_2', name: 'ขิม', level: 2, group: 'string', req: { animal: 1, metal: 1, wood: 2 }, img: 'images/instruments/kim2_2.jpg' },
+    { id:'klawng_khaek_2', name: 'กลองแขก', level: 2, group: 'drum', req: { animal: 2, metal: 0, wood: 2 }, img: 'images/instruments/klawng_khaek_2.jpg' },
+    { id:'klawng_thad_3', name: 'กลองทัด', level: 3, group: 'drum', req: { animal: 4, metal: 1, wood: 2 }, img: 'images/instruments/klawng_thad_3.jpg' },
+    { id:'krajappi_2', name: 'กระจับปี่', level: 2, group: 'string', req: { animal: 1, metal: 0, wood: 3 }, img: 'images/instruments/krajappi_2.jpg' },
+    { id:'krajappi_3', name: 'กระจับปี่', level: 3, group: 'string', req: { animal: 2, metal: 0, wood: 4 }, img: 'images/instruments/krajappi_3.jpg' },
+    { id:'krap_phuang_1', name: 'กรับพวง', level: 1, group: 'percussion', req: { animal: 0, metal: 1, wood: 1 }, img: 'images/instruments/krap_phuang_1.jpg' },
+    { id:'krap_sepha_1', name: 'กรับเสภา', level: 1, group: 'percussion', req: { animal: 0, metal: 0, wood: 2 }, img: 'images/instruments/krap_sepha_1.jpg' },
+    { id:'mahorathuk_3', name: 'มโหระทึก', level: 3, group: 'metal_inst', req: { animal: 0, metal: 5, wood: 0 }, img: 'images/instruments/mahorathuk_3.jpg' },
+    { id:'pi_chawa_2', name: 'ปี่ชวา', level: 2, group: 'wind', req: { animal: 1, metal: 1, wood: 2 }, img: 'images/instruments/pi_chawa_2.jpg' },
+    { id:'pi_nai_1', name: 'ปี่ใน', level: 1, group: 'wind', req: { animal: 0, metal: 1, wood: 1 }, img: 'images/instruments/pi_nai_1.jpg' },
+    { id:'pi_nai_3', name: 'ปี่ใน', level: 3, group: 'wind', req: { animal: 0, metal: 4, wood: 1 }, img: 'images/instruments/pi_nai_3.jpg', altImg: 'images/instruments/pi_nai_2.jpg' },
+    { id:'rammana_2', name: 'รำมะนา', level: 2, group: 'drum', req: { animal: 1, metal: 1, wood: 1 }, img: 'images/instruments/rammana_2.jpg' },
+    { id:'ranad_ek_2', name: 'ระนาดเอก', level: 2, group: 'ranad', req: { animal: 0, metal: 1, wood: 3 }, img: 'images/instruments/ranad_ek_2.jpg' },
+    { id:'ranad_ek_3', name: 'ระนาดเอก', level: 3, group: 'ranad', req: { animal: 0, metal: 2, wood: 4 }, img: 'images/instruments/ranad_ek_3.jpg' },
+    { id:'ranad_thum_2', name: 'ระนาดทุ้ม', level: 2, group: 'ranad', req: { animal: 0, metal: 1, wood: 3 }, img: 'images/instruments/ranad_thum_2.jpg' },
+    { id:'ranad_thum_3', name: 'ระนาดทุ้ม', level: 3, group: 'ranad', req: { animal: 0, metal: 2, wood: 4 }, img: 'images/instruments/ranad_thum_3.jpg' },
+    { id:'saw_duang_1', name: 'ซอดวง', level: 1, group: 'string', req: { animal: 1, metal: 0, wood: 1 }, img: 'images/instruments/saw_duang_1.jpg' },
+    { id:'saw_duang_2', name: 'ซอดวง', level: 2, group: 'string', req: { animal: 3, metal: 0, wood: 1 }, img: 'images/instruments/saw_duang_2.jpg' },
+    { id:'saw_duang_3', name: 'ซอดวง', level: 3, group: 'string', req: { animal: 5, metal: 0, wood: 1 }, img: 'images/instruments/saw_duang_3.jpg' },
+    { id:'saw_samsai_2', name: 'ซอสามสาย', level: 2, group: 'string', req: { animal: 1, metal: 1, wood: 2 }, img: 'images/instruments/saw_samsai_2.jpg' },
+    { id:'saw_samsai_3', name: 'ซอสามสาย', level: 3, group: 'string', req: { animal: 3, metal: 1, wood: 1 }, img: 'images/instruments/saw_samsai_3.jpg' },
+    { id:'saw_u_1', name: 'ซออู้', level: 1, group: 'string', req: { animal: 1, metal: 0, wood: 1 }, img: 'images/instruments/saw_u_1.jpg' },
+    { id:'saw_u_2', name: 'ซออู้', level: 2, group: 'string', req: { animal: 3, metal: 0, wood: 1 }, img: 'images/instruments/saw_u_2.jpg' },
+    { id:'saw_u_3', name: 'ซออู้', level: 3, group: 'string', req: { animal: 5, metal: 0, wood: 1 }, img: 'images/instruments/saw_u_3.jpg' },
+    { id:'song_na_2', name: 'สองหน้า', level: 2, group: 'drum', req: { animal: 2, metal: 0, wood: 2 }, img: 'images/instruments/song_na_2.jpg' },
+    { id:'taphoon_3', name: 'ตะโพน', level: 3, group: 'drum', req: { animal: 4, metal: 1, wood: 2 }, img: 'images/instruments/taphoon_3.jpg' },
+    { id:'thon_3', name: 'โทน', level: 3, group: 'drum', req: { animal: 1, metal: 1, wood: 4 }, img: 'images/instruments/thon_3.jpg' }
+  ];
+
+  const allMatDB = [
+    { name: 'ชันโรง', cat: 'animal', level: 2, img: 'images/materials/chan_rong.jpg' },
+    { name: 'หอยมุก', cat: 'animal', level: 3, img: 'images/materials/hoi_mook.jpg' },
+    { name: 'เขาควาย', cat: 'animal', level: 1, img: 'images/materials/khao_khwai.jpg' },
+    { name: 'เขาวัว', cat: 'animal', level: 1, img: 'images/materials/khao_wua.jpg' },
+    { name: 'กระดูกสัตว์', cat: 'animal', level: 1, img: 'images/materials/kradook_sat.jpg' },
+    { name: 'เหล็ก', cat: 'metal', level: 1, img: 'images/materials/lek.jpg' },
+    { name: 'ไม้ชิงชัน', cat: 'wood', level: 2, img: 'images/materials/mai_chingchan.jpg' },
+    { name: 'ไม้ขนุน', cat: 'wood', level: 1, img: 'images/materials/mai_khanun.jpg' },
+    { name: 'ไม้กระพี้เขาควาย', cat: 'wood', level: 2, img: 'images/materials/mai_kra_phi_khao_khwai.jpg' },
+    { name: 'ไม้มะหาด', cat: 'wood', level: 2, img: 'images/materials/mai_mahad.jpg' },
+    { name: 'ไม้มะเกลือ', cat: 'wood', level: 3, img: 'images/materials/mai_makluea.jpg' },
+    { name: 'ไม้มะริด', cat: 'wood', level: 3, img: 'images/materials/mai_marit.jpg' },
+    { name: 'ไม้พะยูง', cat: 'wood', level: 2, img: 'images/materials/mai_payung.jpg' },
+    { name: 'ไม้พญางิ้วดำ', cat: 'wood', level: 3, img: 'images/materials/mai_phaya_ngiu_dam.jpg' },
+    { name: 'ไม้ประดู่', cat: 'wood', level: 1, img: 'images/materials/mai_pradoo.jpg' },
+    { name: 'ไม้สัก', cat: 'wood', level: 1, img: 'images/materials/mai_san.jpg' },
+    { name: 'ไม้สน', cat: 'wood', level: 1, img: 'images/materials/mai_son.jpg' },
+    { name: 'ไหม', cat: 'animal', level: 2, img: 'images/materials/mai_thai.jpg' },
+    { name: 'งาช้าง', cat: 'animal', level: 3, img: 'images/materials/nga_chang.jpg' },
+    { name: 'เงิน', cat: 'metal', level: 2, img: 'images/materials/ngern.jpg' },
+    { name: 'หนังตะกวด', cat: 'animal', level: 1, img: 'images/materials/nhang_takuad.jpg' },
+    { name: 'หนังวัว', cat: 'animal', level: 1, img: 'images/materials/nhang_wua.jpg' },
+    { name: 'ไผ่บง', cat: 'wood', level: 1, img: 'images/materials/phai_bong.jpg' },
+    { name: 'ไผ่ลาย', cat: 'wood', level: 1, img: 'images/materials/phai_lai.jpg' },
+    { name: 'ไผ่รวก', cat: 'wood', level: 1, img: 'images/materials/phai_luak.jpg' },
+    { name: 'ไผ่สีสุก', cat: 'wood', level: 1, img: 'images/materials/phai_si_suk.jpg' },
+    { name: 'หนังช้าง', cat: 'animal', level: 3, img: 'images/materials/nhang_chang.jpg' },
+    { name: 'หนังควาย', cat: 'animal', level: 1, img: 'images/materials/nhang_khwai.jpg' },
+    { name: 'หนังงูเหลือม', cat: 'animal', level: 1, img: 'images/materials/nhang_ngu_lueam.jpg' },
+    { name: 'หนังแพะ', cat: 'animal', level: 1, img: 'images/materials/nhang_phae.jpg' },
+    { name: 'สำริด', cat: 'metal', level: 3, img: 'images/materials/samrit.jpg' },
+    { name: 'ตะกั่ว', cat: 'metal', level: 1, img: 'images/materials/ta_kuad.jpg' },
+    { name: 'ทองคำ', cat: 'metal', level: 3, img: 'images/materials/thong_kham.jpg' },
+    { name: 'ทองขาว', cat: 'metal', level: 1, img: 'images/materials/thong_khaw.jpg' },
+    { name: 'ทองเหลือง', cat: 'metal', level: 1, img: 'images/materials/thong_laeng.jpg' },
+    { name: 'หวาย', cat: 'wood', level: 1, img: 'images/materials/wai.jpg' },
+    { name: 'ขี้ผึ้ง', cat: 'animal', level: 2, img: 'images/materials/wax.jpg' },
+    { name: 'ยางรัก', cat: 'wood', level: 1, img: 'images/materials/yang_rak.jpg' },
+    { name: 'ยางสน', cat: 'wood', level: 1, img: 'images/materials/yang_son.jpg' }
+  ];
+
+  const allToolDB = [
+    { name: 'ขุดไม้', cat: 'tool', ratanaBonus: 1, desc: 'ขุดปรับรูปทรงไม้ (+1 รัตนะ)', img: 'images/tools/khud_mai.jpg' },
+    { name: 'ชักเงาน้ำมัน', cat: 'tool', ratanaBonus: 1, desc: 'เคลือบพื้นผิวเงางาม (+1 รัตนะ)', img: 'images/tools/chak_ngaw_nam_man.jpg' },
+    { name: 'ฉลุลาย', cat: 'tool', ratanaBonus: 3, desc: 'งานฝีมือฉลุลายประณีต (+3 รัตนะ)', img: 'images/tools/chalu_lai.jpg' },
+    { name: 'ฝังไม้', cat: 'tool', ratanaBonus: 2, desc: 'ฝังไม้ประดับลวดลาย (+2 รัตนะ)', img: 'images/tools/fang_mai.jpg' },
+    { name: 'แกะกะละมะพร้าว', cat: 'tool', ratanaBonus: 3, desc: 'แกะกะลาซออู้ประณีต (+3 รัตนะ)', img: 'images/tools/kae_kala_maphrao.jpg' },
+    { name: 'แกะสลัก', cat: 'tool', ratanaBonus: 2, desc: 'แกะสลักลวดลายเครื่องดนตรี (+2 รัตนะ)', img: 'images/tools/kae_salak.jpg' },
+    { name: 'เข้าลิ้นลงเดือย', cat: 'tool', ratanaBonus: 2, desc: 'ประกบไม้แนบสนิทไร้รอยต่อ (+2 รัตนะ)', img: 'images/tools/khao_lim_long_deuai.jpg' },
+    { name: 'เขียนคิ้ว', cat: 'tool', ratanaBonus: 1, desc: 'วาดร่องสีตัดขอบสวยงาม (+1 รัตนะ)', img: 'images/tools/khian_khiu.jpg' },
+    { name: 'เขียนลาย', cat: 'tool', ratanaBonus: 2, desc: 'เขียนลายไทยสร้างสรรค์ (+2 รัตนะ)', img: 'images/tools/khian_lai.jpg' },
+    { name: 'กลึง', cat: 'tool', ratanaBonus: 2, desc: 'กลึงขึ้นรูปเครื่องสาย/กลอง (+2 รัตนะ)', targetGroup: ['string', 'drum'], img: 'images/tools/klueng.jpg' },
+    { name: 'หล่อ หลอม', cat: 'tool', ratanaBonus: 1, desc: 'หลอมโลหะทำเครื่องตี (+1 รัตนะ)', targetGroup: ['metal_inst'], img: 'images/tools/law_lawm.jpg' },
+    { name: 'เลื่อยไม้', cat: 'tool', ratanaBonus: 1, desc: 'ตัดและซอยไม้ตามขนาด (+1 รัตนะ)', img: 'images/tools/lueai_mai.jpg' },
+    { name: 'ปิดทองร่องชาด', cat: 'tool', ratanaBonus: 2, desc: 'ปิดทองระนาดและฆ้องวง (+2 รัตนะ)', targetGroup: ['ranad', 'khawng_wong'], img: 'images/tools/pid_thong_rong_chad.jpg' },
+    { name: 'โป้วลาย', cat: 'tool', ratanaBonus: 1, desc: 'โป้วแต่งผิวไม้เรียบเนียน (+1 รัตนะ)', img: 'images/tools/pow_lai.jpg' },
+    { name: 'รองพื้น', cat: 'tool', ratanaBonus: 1, desc: 'ลงพื้นผิวเตรียมแต่งสี (+1 รัตนะ)', img: 'images/tools/rong_phuen.jpg' },
+    { name: 'สลัก', cat: 'tool', ratanaBonus: 1, desc: 'สลักลวดลายประกอบ (+1 รัตนะ)', img: 'images/tools/salak.jpg' },
+    { name: 'สาวกลอง', cat: 'tool', ratanaBonus: 1, desc: 'ดึงหนังกลองให้ตึงได้รูป (+1 รัตนะ)', targetGroup: ['drum'], img: 'images/tools/saw_klawng.jpg' },
+    { name: 'ตะไบหยาบ', cat: 'tool', ratanaBonus: 1, desc: 'แต่งผิวโลหะและไม้หยาบ (+1 รัตนะ)', img: 'images/tools/ta_bai_hyab.jpg' },
+    { name: 'แทงบุ้ง แทงหางกระเบน', cat: 'tool', ratanaBonus: 2, desc: 'ตกแต่งร่องเสียงละเอียด (+2 รัตนะ)', img: 'images/tools/thaeng_bung.jpg' },
+    { name: 'ถ่วงตะกั่ว', cat: 'tool', ratanaBonus: 1, desc: 'ถ่วงตะกั่วปรับเสียงฆ้อง/ระนาด (+1 รัตนะ)', img: 'images/tools/thuang_ta_kuad.jpg' },
+    { name: 'ตรวจกระสวน', cat: 'tool', ratanaBonus: 2, desc: 'ตรวจสอบแบบพิมพ์เขียว (+2 รัตนะ)', img: 'images/tools/truat_krasuan.jpg' }
+  ];
+
+  const allDevaDB = [
+    { name: 'ฝังมุก', cat: 'deva', desc: 'ค้นหาการ์ดหอยมุกขึ้นมือ', effect: 'search_mook', img: 'images/tools/fang_mook.jpg' },
+    { name: 'ขึ้นขนงกลอง', cat: 'deva', desc: 'สุ่มรับวัตถุดิบไม้ 1 ใบ', effect: 'random_wood', img: 'images/tools/khuen_khanong_klawng.jpg' },
+    { name: 'ขึ้นหนัง', cat: 'deva', desc: 'สุ่มรับวัตถุดิบสัตว์ 1 ใบ', effect: 'random_animal', img: 'images/tools/khuen_nhang.jpg' },
+    { name: 'ร้อยไส้ละมาน', cat: 'deva', desc: 'สุ่มรับวัตถุดิบสัตว์ 1 ใบ', effect: 'random_animal', img: 'images/tools/roi_sai_laman.jpg' },
+    { name: 'ควั่นสาย', cat: 'deva', desc: 'ค้นหาการ์ดไหมขึ้นมือ', effect: 'search_silk', img: 'images/tools/khwan_sai.jpg' },
+    { name: 'ลงรัก ปิดทอง', cat: 'deva', desc: 'ค้นหาการ์ดทองคำขึ้นมือ', effect: 'search_gold', img: 'images/tools/long_rak_pid_thong.jpg' },
+    { name: 'นารทมุนี', cat: 'deva', desc: 'รับวัตถุดิบพิเศษ 2 ใบขึ้นมือทันที', effect: 'choose_mat_3', img: 'images/tools/narad_muni.jpg' },
+    { name: 'พระพุทธเจ้าเปิดโลก', cat: 'deva', desc: 'ส่องดูรายชื่อการ์ดในมือของบอททุกคน', effect: 'reveal_hands', img: 'images/tools/phra_buddha_open_world.jpg' },
+    { name: 'พระคเณศวร', cat: 'deva', desc: 'เพิ่มเป็น 3 แอคชัน/เทิร์น นาน 3 เทิร์น', effect: 'add_actions_3_turns', img: 'images/tools/phra_ganesh.jpg' },
+    { name: 'พระลักษมี', cat: 'deva', desc: 'เพิ่มการ์ดพระลักษมีลงในขั้นตอนสร้างเครื่องดนตรี', effect: 'craft_with_lakshmi', img: 'images/tools/phra_lakshmi.jpg' },
+    { name: 'พระปัญจสิงขร', cat: 'deva', desc: 'นำการ์ดวัตถุดิบทั้ง 5 ใบในตลาดขึ้นมือฟรีทันที', effect: 'refresh_market', img: 'images/tools/phra_panchasingkhor.jpg' },
+    { name: 'พระพิราพ', cat: 'deva', desc: 'ทำลายวัตถุดิบในมือคู่แข่งทุกคนจนเกลี้ยง', effect: 'destroy_opponents_hand', img: 'images/tools/phra_phirap.jpg' },
+    { name: 'พระปรคนธรรพ', cat: 'deva', desc: 'เพิ่มช่องตลาดเครื่องดนตรีเป็น 5 ช่อง', effect: 'expand_market_5', img: 'images/tools/phra_prakonthan.jpg' },
+    { name: 'พระสรัสวดี', cat: 'deva', desc: 'เนรมิตสร้างเครื่องดนตรีฟรีทันที', effect: 'choose_inst_free', img: 'images/tools/phra_saraswati.jpg' },
+    { name: 'วิษณุกรรมประสิทธิ์', cat: 'deva', desc: 'เนรมิตสร้างเครื่องดนตรีได้ 3 เท่า', effect: 'vitsanukam_instant_craft', img: 'images/tools/phra_vitsanukam.jpg' }
+  ];
+
+  let instDeck = [];
+  let matDeck = [];
+  let toolDeck = [];
+  let marketInsts = [];
+  let marketMats = [];
+
+  let players = {
+    p1: { name: 'ทิดมาก', hand: [], crafted: [], ratana: 5, doubleBuff: false, avatar: '', ageGroup: 'young' },
+    bot1: { name: 'บอท 1', hand: [], handCount: 0, crafted: [], ratana: 5, avatar: '', ageGroup: 'young' },
+    bot2: { name: 'บอท 2', hand: [], handCount: 0, crafted: [], ratana: 5, avatar: '', ageGroup: 'old' },
+    bot3: { name: 'บอท 3', hand: [], handCount: 0, crafted: [], ratana: 5, avatar: '', ageGroup: 'young' }
+  };
+
+  let maxActions = 2;
+  let actionsLeft = 2;
+  let ganeshaTurns = 0;
+  let currentTurn = 'p1';
+  let gameRound = 1;
+  let selectedCraftIndices = [];
+  let currentCraftInst = null;
+  let currentCraftMarketIdx = -1;
+  let winTargetCount = 5;
+  let gameOverTriggered = false;
+
+  window.onload = () => {
+    initAvatarSelection();
+  };
+
+  function shuffle(array) {
+    let arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function setLog(msg) {
+    document.getElementById('log-box').innerText = msg;
+  }
+
+  function startGameWithSettings() {
+    winTargetCount = parseInt(document.getElementById('win-target-select').value);
+    aiDifficulty = document.getElementById('ai-difficulty-select').value;
+
+    const customName = document.getElementById('player-name-input').value.trim();
+    if (customName) players.p1.name = customName;
+    players.p1.avatar = characterAvatars[selectedAvatarIndex].img;
+    players.p1.ageGroup = characterAvatars[selectedAvatarIndex].ageGroup;
+
+    let availableAvatars = characterAvatars.filter((_, idx) => idx !== selectedAvatarIndex);
+    availableAvatars = shuffle(availableAvatars);
+
+    ['bot1', 'bot2', 'bot3'].forEach((bKey, idx) => {
+      players[bKey].name = availableAvatars[idx].name;
+      players[bKey].avatar = availableAvatars[idx].img;
+      players[bKey].ageGroup = availableAvatars[idx].ageGroup;
+      document.getElementById(`${bKey}-title`).innerText = players[bKey].name;
+      document.getElementById(`${bKey}-avatar`).style.backgroundImage = `url('${players[bKey].avatar}')`;
+    });
+
+    document.getElementById('player-hud-name').innerText = players.p1.name;
+    document.getElementById('player-hud-avatar').style.backgroundImage = `url('${players.p1.avatar}')`;
+
+    const bgMusic = document.getElementById('bg-music');
+    bgMusic.play().catch(e => console.log("Audio autoplay restricted by browser"));
+
+    startDealAnimation();
+  }
+
+  function createCardElement(card, typeClass) {
+    const el = document.createElement('div');
+    let holoClass = (card.level === 3 || typeClass === 'deva') ? ' holographic' : '';
+    el.className = `card ${typeClass}${holoClass}`;
+    
+    if (card.img) {
+      const img = new Image();
+      img.src = card.img;
+      img.onload = () => { el.style.backgroundImage = `url('${card.img}')`; };
+      img.onerror = () => {
+        if (card.altImg) el.style.backgroundImage = `url('${card.altImg}')`;
+        else el.style.backgroundColor = '#2a221b';
+      };
+    }
+
+    let subInfo = '';
+    let tooltipText = '';
+
+    if (card.level && typeClass === 'instrument') {
+      subInfo = `<div class="card-sub-info">⭐ ระดับ ${card.level}</div>`;
+      tooltipText = `เครื่องดนตรี: ${card.name} (ระดับ ${card.level})\nวัตถุดิบ: สัตว์ ${card.req.animal} | โลหะ ${card.req.metal} | ไม้ ${card.req.wood}`;
+    } else if (card.level && (typeClass === 'wood' || typeClass === 'animal' || typeClass === 'metal')) {
+      subInfo = `<div class="card-sub-info">⭐ ดาว ${card.level}</div>`;
+      tooltipText = `วัตถุดิบ: ${card.name}\nดาว: ${card.level} (ใช้ ${card.level} รัตนะ)`;
+    } else if (typeClass === 'tool') {
+      subInfo = `<div class="card-sub-info">+${card.ratanaBonus} รัตนะ</div>`;
+      tooltipText = `เครื่องมือช่าง: ${card.name}\nความสามารถ: ${card.desc}`;
+    } else if (typeClass === 'deva') {
+      subInfo = `<div class="card-sub-info">วิชาช่าง</div>`;
+      tooltipText = `การ์ดเทพ/วิชาพิเศษ: ${card.name}\nเอฟเฟกต์: ${card.desc}`;
+    }
+
+    el.title = tooltipText;
+    el.innerHTML = `<div class="card-title-text">${card.name}</div>${subInfo}`;
+    return el;
+  }
+
+  function renderHand() {
+    const container = document.getElementById('p1-hand');
+    container.innerHTML = '';
+    players.p1.hand.forEach((card, handIdx) => {
+      const el = createCardElement(card, card.cat);
+      if (card.effect === 'craft_with_lakshmi') {
+        el.title = 'การ์ดพระลักษมี: นำไปใช้ร่วมในหน้าต่างสร้างเครื่องดนตรีเพื่อคูณ 2 รัตนะ';
+      }
+      if (card.cat === 'deva') {
+        el.onclick = () => castDevaCard(card, handIdx);
+      }
+      container.appendChild(el);
+    });
+  }
+
+  function renderInstMarket() {
+    const container = document.getElementById('inst-market');
+    container.innerHTML = '';
+    marketInsts.forEach((inst, idx) => {
+      if (!inst) return;
+      const el = createCardElement(inst, 'instrument');
+      el.onclick = () => openCraftModal(inst, idx);
+      container.appendChild(el);
+    });
+  }
+
+  function renderMatMarket() {
+    const container = document.getElementById('mat-market');
+    container.innerHTML = '';
+    marketMats.forEach((mat, idx) => {
+      if (!mat) return;
+      const el = createCardElement(mat, mat.cat);
+      el.onclick = () => buyMarketMaterial(idx);
+      container.appendChild(el);
+    });
+  }
+
+  function buyMarketMaterial(idx) {
+    if (currentTurn !== 'p1') return alert('ยังไม่ถึงตาของคุณ!');
+    if (actionsLeft <= 0) return alert('แอคชันในเทิร์นนี้ของคุณหมดแล้ว!');
+
+    const mat = marketMats[idx];
+    if (!mat) return;
+
+    let cost = mat.level;
+    if (players.p1.ratana < cost) {
+      return alert(`รัตนะของคุณไม่พอ! ต้องการ ${cost} รัตนะเพื่อซื้อ "${mat.name}" (มีอยู่ ${players.p1.ratana} รัตนะ)`);
+    }
+
+    players.p1.ratana -= cost;
+    playSound('coin');
+    document.getElementById('ratana-p1').innerText = players.p1.ratana;
+
+    players.p1.hand.push({ ...mat });
+    if (matDeck.length === 0) matDeck = shuffle([...allMatDB]);
+    marketMats[idx] = matDeck.pop();
+
+    actionsLeft--;
+    document.getElementById('actions-p1').innerText = actionsLeft;
+    setLog(`คุณซื้อ "${mat.name}" (ดาว ${mat.level}) จ่าย ${cost} รัตนะ`);
+    renderMatMarket();
+    renderHand();
+  }
+
+  function startDealAnimation() {
+    document.getElementById('start-overlay').style.display = 'none';
+    
+    instDeck = shuffle([...allInstDB]);
+    matDeck = shuffle([...allMatDB]);
+    toolDeck = shuffle([...allToolDB, ...allDevaDB]);
+
+    marketMats = [matDeck.pop(), matDeck.pop(), matDeck.pop(), matDeck.pop(), matDeck.pop()];
+    marketInsts = [instDeck.pop(), instDeck.pop(), instDeck.pop()];
+
+    renderInstMarket();
+    renderMatMarket();
+
+    let dealTargets = [];
+    for (let i = 0; i < 7; i++) {
+      dealTargets.push('p-bottom', 'p-left', 'p-top', 'p-right');
+    }
+
+    setLog('กำลังสับกองการ์ดและแจกการ์ดเริ่มต้น...');
+    playSound('card');
+
+    let step = 0;
+    let interval = setInterval(() => {
+      if (step >= dealTargets.length) {
+        clearInterval(interval);
+        setLog(`แจกการ์ดเรียบร้อย! ถึงตาของคุณ (${players.p1.name})`);
+        return;
+      }
+
+      let targetId = dealTargets[step];
+      animateCardFlight(targetId, 'mat', () => {
+        if (matDeck.length === 0) matDeck = shuffle([...allMatDB]);
+        if (toolDeck.length === 0) toolDeck = shuffle([...allToolDB, ...allDevaDB]);
+
+        if (targetId === 'p-bottom') {
+          if (players.p1.hand.length < 5) players.p1.hand.push({ ...matDeck.pop() });
+          else players.p1.hand.push({ ...toolDeck.pop() });
+          renderHand();
+        } else if (targetId === 'p-left') {
+          players.bot1.hand.push({ ...matDeck.pop() });
+          players.bot1.handCount = players.bot1.hand.length;
+          document.getElementById('cards-left').innerText = players.bot1.handCount;
+        } else if (targetId === 'p-top') {
+          players.bot2.hand.push({ ...matDeck.pop() });
+          players.bot2.handCount = players.bot2.hand.length;
+          document.getElementById('cards-top').innerText = players.bot2.handCount;
+        } else if (targetId === 'p-right') {
+          players.bot3.hand.push({ ...matDeck.pop() });
+          players.bot3.handCount = players.bot3.hand.length;
+          document.getElementById('cards-right').innerText = players.bot3.handCount;
+        }
+      });
+      step++;
+    }, 90);
+  }
+
+  function animateCardFlight(targetId, deckType, callback) {
+    let sourceElementId = 'deck-mat';
+    if (deckType === 'inst') sourceElementId = 'deck-inst';
+    else if (deckType === 'tool') sourceElementId = 'deck-tool';
+
+    let srcEl = document.getElementById(sourceElementId);
+    let srcRect = srcEl ? srcEl.getBoundingClientRect() : { top: window.innerHeight/2, left: window.innerWidth/2 };
+
+    let fly = document.createElement('div');
+    fly.className = 'flying-card';
+    fly.style.top = srcRect.top + 'px';
+    fly.style.left = srcRect.left + 'px';
+    document.body.appendChild(fly);
+
+    let targetEl = document.getElementById(targetId);
+    let rect = targetEl.getBoundingClientRect();
+
+    setTimeout(() => {
+      fly.style.top = (rect.top + rect.height/2 - 45) + 'px';
+      fly.style.left = (rect.left + rect.width/2 - 30) + 'px';
+      fly.style.opacity = '0.4';
+      fly.style.transform = 'scale(0.5)';
+    }, 20);
+
+    setTimeout(() => { fly.remove(); if (callback) callback(); }, 380);
+  }
+
+  function drawInstFromDeckManual() {
+    if (currentTurn !== 'p1') return alert('ยังไม่ถึงตาของคุณ!');
+    if (actionsLeft <= 0) return alert('แอคชันในเทิร์นนี้ของคุณหมดแล้ว!');
+    if (instDeck.length === 0) instDeck = shuffle([...allInstDB]);
+    
+    animateCardFlight('p-bottom', 'inst', () => {
+      marketInsts[0] = instDeck.pop();
+      renderInstMarket();
+    });
+    actionsLeft--;
+    playSound('card');
+    document.getElementById('actions-p1').innerText = actionsLeft;
+    setLog('เปิดตลาดการ์ดเครื่องดนตรีใบใหม่');
+  }
+
+  function drawMaterialAction() {
+    if (currentTurn !== 'p1') return alert('ยังไม่ถึงตาของคุณ!');
+    if (actionsLeft <= 0) return alert('แอคชันในเทิร์นนี้ของคุณหมดแล้ว!');
+    
+    if (matDeck.length === 0) matDeck = shuffle([...allMatDB]);
+    animateCardFlight('p-bottom', 'mat', () => {
+      const drawnMat = { ...matDeck.pop() };
+      players.p1.hand.push(drawnMat);
+      renderHand();
+    });
+    actionsLeft--;
+    playSound('card');
+    document.getElementById('actions-p1').innerText = actionsLeft;
+    setLog('คุณจั่วการ์ดวัตถุดิบสำเร็จ');
+  }
+
+  function drawToolAction() {
+    if (currentTurn !== 'p1') return alert('ยังไม่ถึงตาของคุณ!');
+    if (actionsLeft <= 0) return alert('แอคชันในเทิร์นนี้ของคุณหมดแล้ว!');
+
+    if (toolDeck.length === 0) toolDeck = shuffle([...allToolDB, ...allDevaDB]);
+    animateCardFlight('p-bottom', 'tool', () => {
+      const drawnSpecial = { ...toolDeck.pop() };
+      players.p1.hand.push(drawnSpecial);
+      renderHand();
+    });
+    actionsLeft--;
+    playSound('card');
+    document.getElementById('actions-p1').innerText = actionsLeft;
+    setLog('คุณจั่วการ์ดช่าง/เทพสำเร็จ');
+  }
+
+  function castDevaCard(card, handIdx) {
+    if (currentTurn !== 'p1') return alert('ยังไม่ถึงตาของคุณ!');
+    if (actionsLeft <= 0) return alert('แอคชันในเทิร์นนี้ของคุณหมดแล้ว!');
+
+    if (card.effect === 'craft_with_lakshmi') {
+      return alert('การ์ดพระลักษมี\n\nวิธีใช้: ไปที่หน้าต่างสร้างเครื่องดนตรี (คลิกเลือกเครื่องดนตรีในตลาด) แล้วคลิกเลือกการ์ดใบนี้ร่วมกับวัตถุดิบเพื่อคูณ 2 รัตนะ');
+    }
+
+    players.p1.hand.splice(handIdx, 1);
+    playSound('magic');
+
+    if (card.effect === 'search_mook') {
+      players.p1.hand.push({ ...allMatDB.find(m => m.name === 'หอยมุก') });
+      alert('ฝังมุก: ค้นหาการ์ด "หอยมุก" ขึ้นมือสำเร็จ');
+    } else if (card.effect === 'search_silk') {
+      players.p1.hand.push({ ...allMatDB.find(m => m.name === 'ไหม') });
+      alert('ควั่นสาย: ค้นหาการ์ด "ไหม" ขึ้นมือสำเร็จ');
+    } else if (card.effect === 'search_gold') {
+      players.p1.hand.push({ ...allMatDB.find(m => m.name === 'ทองคำ') });
+      alert('ลงรัก ปิดทอง: ค้นหาการ์ด "ทองคำ" ขึ้นมือสำเร็จ');
+    } else if (card.effect === 'random_wood') {
+      const woods = allMatDB.filter(m => m.cat === 'wood');
+      players.p1.hand.push({ ...woods[Math.floor(Math.random() * woods.length)] });
+      alert(`${card.name}: สุ่มรับวัตถุดิบไม้ขึ้นมือสำเร็จ`);
+    } else if (card.effect === 'random_animal') {
+      const animals = allMatDB.filter(m => m.cat === 'animal');
+      players.p1.hand.push({ ...animals[Math.floor(Math.random() * animals.length)] });
+      alert(`${card.name}: สุ่มรับวัตถุดิบสัตว์ขึ้นมือสำเร็จ`);
+    } else if (card.effect === 'choose_mat_3') {
+      if (matDeck.length < 2) matDeck = shuffle([...allMatDB]);
+      players.p1.hand.push({ ...matDeck.pop() }, { ...matDeck.pop() });
+      alert('นารทมุนี: รับวัตถุดิบพิเศษ 2 ใบขึ้นมือทันที');
+    } else if (card.effect === 'reveal_hands') {
+      let b1Cards = players.bot1.hand.map(c => c.name).join(', ') || 'ไม่มีการ์ด';
+      let b2Cards = players.bot2.hand.map(c => c.name).join(', ') || 'ไม่มีการ์ด';
+      let b3Cards = players.bot3.hand.map(c => c.name).join(', ') || 'ไม่มีการ์ด';
+      alert(`พระพุทธเจ้าเปิดโลก (เปิดเผยการ์ดบนมือคู่แข่ง):\n\nบอท 1: [ ${b1Cards} ]\nบอท 2: [ ${b2Cards} ]\nบอท 3: [ ${b3Cards} ]`);
+    } else if (card.effect === 'add_actions_3_turns') {
+      ganeshaTurns = 3; maxActions = 3; actionsLeft += 2;
+      document.getElementById('max-actions-p1').innerText = maxActions;
+      alert('พระคเณศวร: เพิ่มเป็น 3 แอคชัน/เทิร์น นาน 3 เทิร์น');
+    } else if (card.effect === 'refresh_market') {
+      marketMats.forEach(mat => { if (mat) players.p1.hand.push({ ...mat }); });
+      if (matDeck.length < 5) matDeck = shuffle([...allMatDB]);
+      marketMats = [matDeck.pop(), matDeck.pop(), matDeck.pop(), matDeck.pop(), matDeck.pop()];
+      renderMatMarket(); renderHand();
+      alert('พระปัญจสิงขร: เก็บการ์ดวัตถุดิบทั้ง 5 ใบในตลาดขึ้นมือฟรีทั้งหมด');
+    } else if (card.effect === 'destroy_opponents_hand') {
+      ['bot1', 'bot2', 'bot3'].forEach(bKey => { players[bKey].hand = []; players[bKey].handCount = 0; });
+      document.getElementById('cards-left').innerText = players.bot1.handCount;
+      document.getElementById('cards-top').innerText = players.bot2.handCount;
+      document.getElementById('cards-right').innerText = players.bot3.handCount;
+      alert('พระพิราพ: ทำลายและล้างการ์ดในมือของคู่แข่งทุกคนจนเกลี้ยง');
+    } else if (card.effect === 'expand_market_5') {
+      if (instDeck.length < 2) instDeck = shuffle([...allInstDB]);
+      if (marketInsts.length < 5) marketInsts.push(instDeck.pop(), instDeck.pop());
+      renderInstMarket();
+      alert('พระปรคนธรรพ: เพิ่มช่องตลาดเครื่องดนตรีเป็น 5 ช่อง');
+    } else if (card.effect === 'choose_inst_free' || card.effect === 'vitsanukam_instant_craft') {
+      const freeInst = marketInsts[0] || instDeck.pop();
+      const earned = (freeInst.level * 2) * 3;
+      players.p1.ratana += earned;
+      players.p1.crafted.push(freeInst);
+      renderCraftedShelf('shelf-p1', players.p1.crafted);
+      document.getElementById('ratana-p1').innerText = players.p1.ratana;
+      marketInsts[0] = instDeck.pop();
+      renderInstMarket();
+      alert(`${card.name}: สร้าง "${freeInst.name}" สำเร็จฟรี ได้รับ +${earned} รัตนะ`);
+    }
+
+    actionsLeft--;
+    document.getElementById('actions-p1').innerText = actionsLeft;
+    setLog(`ร่ายวิชา: ${card.name}`);
+    renderHand();
+  }
+
+  function openCraftModal(inst, marketIdx) {
+    if (currentTurn !== 'p1') return alert('ยังไม่ถึงตาของคุณ!');
+    if (actionsLeft <= 0) return alert('แอคชันในเทิร์นนี้ของคุณหมดแล้ว!');
+    
+    selectedCraftIndices = [];
+    currentCraftInst = inst;
+    currentCraftMarketIdx = marketIdx;
+
+    document.getElementById('modal-title').innerText = `สร้าง: ${inst.name} (ระดับ ${inst.level})`;
+    document.getElementById('modal-req-text').innerText = `สูตร: สัตว์ ${inst.req.animal} | โลหะ ${inst.req.metal} | ไม้ ${inst.req.wood}`;
+
+    const selectionContainer = document.getElementById('modal-mat-selection');
+    selectionContainer.innerHTML = '';
+    
+    players.p1.hand.forEach((card, handIdx) => {
+      if (card.cat === 'deva' && card.effect !== 'craft_with_lakshmi') return;
+      const cardEl = createCardElement(card, card.cat);
+      cardEl.onclick = () => toggleSelectMat(handIdx, cardEl, inst);
+      selectionContainer.appendChild(cardEl);
+    });
+
+    updateModalSelectedStatus(inst);
+    document.getElementById('craft-modal').style.display = 'flex';
+  }
+
+  function getSelectedCounts() {
+    let counts = { animal: 0, metal: 0, wood: 0, tool: 0, lakshmi: 0 };
+    selectedCraftIndices.forEach(idx => {
+      let c = players.p1.hand[idx];
+      if (!c) return;
+      if (c.cat === 'animal') counts.animal++;
+      else if (c.cat === 'metal') counts.metal++;
+      else if (c.cat === 'wood') counts.wood++;
+      else if (c.cat === 'tool') counts.tool++;
+      else if (c.effect === 'craft_with_lakshmi') counts.lakshmi++;
+    });
+    return counts;
+  }
+
+  function updateModalSelectedStatus(inst) {
+    let counts = getSelectedCounts();
+    document.getElementById('modal-selected-count').innerText = 
+      `เลือกแล้ว ➔ สัตว์: ${counts.animal}/${inst.req.animal} | โลหะ: ${counts.metal}/${inst.req.metal} | ไม้: ${counts.wood}/${inst.req.wood} | เครื่องมือ: ${counts.tool}/1 | พระลักษมี: ${counts.lakshmi}/1`;
+  }
+
+  function toggleSelectMat(handIdx, cardEl, inst) {
+    const card = players.p1.hand[handIdx];
+    const existsIdx = selectedCraftIndices.indexOf(handIdx);
+
+    if (existsIdx > -1) {
+      selectedCraftIndices.splice(existsIdx, 1);
+      cardEl.classList.remove('selected-for-craft');
+    } else {
+      let counts = getSelectedCounts();
+      if (card.cat === 'tool') {
+        if (counts.tool >= 1) return alert('เลือกเครื่องมือได้สูงสุด 1 ใบ');
+      } else if (card.effect === 'craft_with_lakshmi') {
+        if (counts.lakshmi >= 1) return alert('เลือกการ์ดพระลักษมีได้สูงสุด 1 ใบ');
+      } else if (card.cat === 'animal' && counts.animal >= inst.req.animal) {
+        return alert('วัตถุดิบสัตว์ครบตามสูตรแล้ว');
+      } else if (card.cat === 'metal' && counts.metal >= inst.req.metal) {
+        return alert('วัตถุดิบโลหะครบตามสูตรแล้ว');
+      } else if (card.cat === 'wood' && counts.wood >= inst.req.wood) {
+        return alert('วัตถุดิบไม้ครบตามสูตรแล้ว');
+      }
+      selectedCraftIndices.push(handIdx);
+      cardEl.classList.add('selected-for-craft');
+    }
+    updateModalSelectedStatus(inst);
+  }
+
+  function confirmCraft() {
+    let inst = currentCraftInst;
+    let marketIdx = currentCraftMarketIdx;
+    if (!inst) return;
+
+    let counts = getSelectedCounts();
+    if (counts.animal !== inst.req.animal || counts.metal !== inst.req.metal || counts.wood !== inst.req.wood) {
+      return alert('วัตถุดิบยังไม่ครบตามสูตรที่กำหนด');
+    }
+
+    closeModal();
+    document.getElementById('cutscene-text').innerText = `กำลังประณีตบรรจงสร้าง "${inst.name}"...`;
+    document.getElementById('craft-cutscene').style.display = 'flex';
+    playSound('hammer');
+
+    setTimeout(() => {
+      document.getElementById('craft-cutscene').style.display = 'none';
+
+      let epicBox = document.getElementById('epic-reveal-box');
+      let epicImg = document.getElementById('epic-card-img');
+      let sparkleText = document.getElementById('epic-sparkle-text');
+      
+      epicImg.style.backgroundImage = `url('${inst.img}')`;
+      if (inst.level === 1) {
+        sparkleText.innerText = `สร้าง "${inst.name}" (ระดับ 1) สำเร็จ ประกายแสงสีเงินนวลละมุน`;
+        epicImg.style.borderColor = '#c0c0c0';
+      } else if (inst.level === 2) {
+        sparkleText.innerText = `สร้าง "${inst.name}" (ระดับ 2) สำเร็จ ประกายแสงสีทองอร่ามสว่างสดใส`;
+        epicImg.style.borderColor = '#ffd700';
+      } else {
+        sparkleText.innerText = `สร้าง "${inst.name}" (ระดับ 3 แรร์สูงสุด) สำเร็จ ออร่าสายฟ้าทองคำระยิบระยับ`;
+        epicImg.style.borderColor = '#ff4500';
+      }
+
+      epicBox.style.display = 'flex';
+      playSound('magic');
+
+      setTimeout(() => {
+        epicBox.style.display = 'none';
+
+        let totalMaterialStars = 0;
+        let toolBonus = 0;
+        let hasLakshmi = false;
+
+        selectedCraftIndices.forEach(idx => {
+          const card = players.p1.hand[idx];
+          if (card.cat === 'tool') {
+            toolBonus += (card.ratanaBonus || 1);
+          } else if (card.effect === 'craft_with_lakshmi') {
+            hasLakshmi = true;
+          } else {
+            totalMaterialStars += (card.level || 1);
+          }
+        });
+
+        selectedCraftIndices.sort((a, b) => b - a).forEach(idx => {
+          players.p1.hand.splice(idx, 1);
+        });
+
+        let craftScore = (inst.level * 2) + totalMaterialStars + toolBonus;
+        if (hasLakshmi) craftScore *= 2;
+        
+        players.p1.ratana += craftScore;
+        playSound('coin');
+        document.getElementById('ratana-p1').innerText = players.p1.ratana;
+        players.p1.crafted.push(inst);
+        renderCraftedShelf('shelf-p1', players.p1.crafted);
+
+        if (instDeck.length === 0) instDeck = shuffle([...allInstDB]);
+        marketInsts[marketIdx] = instDeck.pop();
+
+        actionsLeft--;
+        document.getElementById('actions-p1').innerText = actionsLeft;
+        renderHand();
+        renderInstMarket();
+        
+        let msg = `สร้าง ${inst.name} สำเร็จ (+${craftScore} รัตนะ)`;
+        if (hasLakshmi) msg += ` (พลังพระลักษมีคูณ 2)`;
+        setLog(msg);
+
+        if (!gameOverTriggered && players.p1.crafted.length >= winTargetCount) {
+          gameOverTriggered = true;
+          triggerGameOver('p1');
+        }
+      }, 2200);
+    }, 1400);
+  }
+
+  document.getElementById('confirm-craft-btn').onclick = confirmCraft;
+
+  function renderCraftedShelf(shelfId, craftedList) {
+    const shelf = document.getElementById(shelfId);
+    shelf.innerHTML = '';
+    craftedList.forEach(inst => {
+      const mini = document.createElement('div');
+      mini.className = 'crafted-mini-card';
+      mini.title = `${inst.name} (ระดับ ${inst.level})`;
+      mini.style.backgroundImage = `url('${inst.img}')`;
+      shelf.appendChild(mini);
+    });
+  }
+
+  function closeModal() {
+    document.getElementById('craft-modal').style.display = 'none';
+  }
+
+  function endTurn() {
+    if (currentTurn !== 'p1') return;
+    
+    if (ganeshaTurns > 0) {
+      ganeshaTurns--;
+      if (ganeshaTurns === 0) {
+        maxActions = 2;
+        document.getElementById('max-actions-p1').innerText = maxActions;
+      }
+    }
+
+    if (matDeck.length === 0) matDeck = shuffle([...allMatDB]);
+    marketMats.shift();
+    marketMats.push(matDeck.pop());
+    renderMatMarket();
+
+    actionsLeft = 0;
+    document.getElementById('actions-p1').innerText = 0;
+    document.getElementById('p-bottom').classList.remove('active-turn');
+    
+    setLog('จบเทิร์นของคุณ -> บอทกำลังดำเนินการ...');
+    setTimeout(runBot1, 600);
+  }
+
+  function executeBotTurn(botKey, shelfId, ratanaId, cardsCountId, nextCallback) {
+    if (gameOverTriggered) return;
+    let bot = players[botKey];
+    if (!Array.isArray(bot.hand)) bot.hand = [];
+
+    let delayMin = aiDifficulty === 'easy' ? 2500 : (aiDifficulty === 'normal' ? 4000 : 5500);
+    let randomDelay = Math.floor(Math.random() * 1500) + delayMin;
+
+    setLog(`${bot.name} (${bot.ageGroup === 'young' ? 'สายรุกไว' : 'สายสะสม'}) กำลังใช้ความคิด...`);
+
+    setTimeout(() => {
+      if (gameOverTriggered) return;
+
+      for (let a = 0; a < 2; a++) {
+        if (matDeck.length === 0) matDeck = shuffle([...allMatDB]);
+        bot.hand.push({ ...matDeck.pop() });
+      }
+      bot.handCount = bot.hand.length;
+      document.getElementById(cardsCountId).innerText = bot.handCount;
+
+      let crafted = false;
+      let sortedMarket = [...marketInsts].filter(i => i !== null);
+      if (bot.ageGroup === 'young') sortedMarket.sort((a, b) => a.level - b.level);
+      else sortedMarket.sort((a, b) => b.level - a.level);
+
+      for (let i = 0; i < sortedMarket.length; i++) {
+        let inst = sortedMarket[i];
+        let marketIdx = marketInsts.indexOf(inst);
+        if (marketIdx === -1) continue;
+
+        let animals = bot.hand.filter(c => c.cat === 'animal');
+        let metals = bot.hand.filter(c => c.cat === 'metal');
+        let woods = bot.hand.filter(c => c.cat === 'wood');
+
+        let canCraft = (animals.length >= inst.req.animal && metals.length >= inst.req.metal && woods.length >= inst.req.wood);
+        if (aiDifficulty === 'easy' && Math.random() > 0.6) canCraft = false;
+
+        if (canCraft) {
+          let needA = inst.req.animal, needM = inst.req.metal, needW = inst.req.wood;
+          let matStars = 0;
+
+          bot.hand = bot.hand.filter(c => {
+            if (c.cat === 'animal' && needA > 0) { needA--; matStars += (c.level || 1); return false; }
+            if (c.cat === 'metal' && needM > 0) { needM--; matStars += (c.level || 1); return false; }
+            if (c.cat === 'wood' && needW > 0) { needW--; matStars += (c.level || 1); return false; }
+            return true;
+          });
+
+          let earned = (inst.level * 2) + matStars;
+          bot.ratana += earned;
+          bot.crafted.push(inst);
+          bot.handCount = bot.hand.length;
+
+          document.getElementById(ratanaId).innerText = bot.ratana;
+          document.getElementById(cardsCountId).innerText = bot.handCount;
+          renderCraftedShelf(shelfId, bot.crafted);
+
+          if (instDeck.length === 0) instDeck = shuffle([...allInstDB]);
+          marketInsts[marketIdx] = instDeck.pop();
+          renderInstMarket();
+          setLog(`${bot.name} สร้าง "${inst.name}" สำเร็จ (+${earned} รัตนะ)`);
+          crafted = true;
+
+          if (!gameOverTriggered && bot.crafted.length >= winTargetCount) {
+            gameOverTriggered = true;
+            triggerGameOver(botKey);
+            return;
+          }
+          break;
+        }
+      }
+
+      if (!crafted) setLog(`${bot.name} สะสมวัตถุดิบเรียบร้อย`);
+      if (nextCallback) nextCallback();
+    }, randomDelay);
+  }
+
+  function runBot1() {
+    if (gameOverTriggered) return;
+    currentTurn = 'bot1';
+    document.getElementById('p-left').classList.add('active-turn');
+    document.getElementById('turn-text').innerText = `รอบที่: ${gameRound} | ตาของ: ${players.bot1.name}`;
+    executeBotTurn('bot1', 'shelf-left', 'ratana-left', 'cards-left', () => {
+      document.getElementById('p-left').classList.remove('active-turn');
+      setTimeout(runBot2, 400);
+    });
+  }
+
+  function runBot2() {
+    if (gameOverTriggered) return;
+    currentTurn = 'bot2';
+    document.getElementById('p-top').classList.add('active-turn');
+    document.getElementById('turn-text').innerText = `รอบที่: ${gameRound} | ตาของ: ${players.bot2.name}`;
+    executeBotTurn('bot2', 'shelf-top', 'ratana-top', 'cards-top', () => {
+      document.getElementById('p-top').classList.remove('active-turn');
+      setTimeout(runBot3, 400);
+    });
+  }
+
+  function runBot3() {
+    if (gameOverTriggered) return;
+    currentTurn = 'bot3';
+    document.getElementById('p-right').classList.add('active-turn');
+    document.getElementById('turn-text').innerText = `รอบที่: ${gameRound} | ตาของ: ${players.bot3.name}`;
+    executeBotTurn('bot3', 'shelf-right', 'ratana-right', 'cards-right', () => {
+      document.getElementById('p-right').classList.remove('active-turn');
+      setTimeout(startPlayerTurn, 400);
+    });
+  }
+
+  function startPlayerTurn() {
+    if (gameOverTriggered) return;
+    gameRound++;
+    currentTurn = 'p1';
+    actionsLeft = maxActions;
+    document.getElementById('actions-p1').innerText = actionsLeft;
+    document.getElementById('p-bottom').classList.add('active-turn');
+    document.getElementById('turn-text').innerText = `รอบที่: ${gameRound} | ตาของคุณ (${players.p1.name})`;
+    setLog(`ถึงตาของคุณแล้ว (${players.p1.name})`);
+  }
+
+  function triggerGameOver(winnerKey) {
+    let finisherBonus = Math.ceil(winTargetCount * 2.5);
+    players[winnerKey].ratana += finisherBonus;
+
+    let pKeys = ['p1', 'bot1', 'bot2', 'bot3'];
+    let results = pKeys.map(k => {
+      let p = players[k];
+      let instStarSum = p.crafted.reduce((sum, inst) => sum + inst.level, 0);
+      let handMatStarSum = p.hand.reduce((sum, c) => sum + (c.level || 0), 0);
+      let totalScore = instStarSum + handMatStarSum + p.ratana;
+      return {
+        key: k, name: p.name, avatar: p.avatar, craftedCount: p.crafted.length,
+        instStarSum, handMatStarSum, ratana: p.ratana, totalScore, isFinisher: (k === winnerKey)
+      };
+    });
+
+    results.sort((a, b) => b.totalScore - a.totalScore);
+
+    let tbody = document.getElementById('score-tbody');
+    tbody.innerHTML = '';
+    results.forEach((res, idx) => {
+      let finisherTag = res.isFinisher ? ` (ผู้นำปิดสำรับ +${finisherBonus} รัตนะ)` : '';
+      let tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><b>#${idx + 1}</b></td>
+        <td>${res.name}${finisherTag}</td>
+        <td>${res.craftedCount} ชิ้น</td>
+        <td>${res.instStarSum} ดาว</td>
+        <td>${res.handMatStarSum} ดาว</td>
+        <td>${res.ratana} รัตนะ</td>
+        <td><b>${res.totalScore} คะแนน</b></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('victory-modal').style.display = 'flex';
+  }
+</script>
+</body>
+</html>
